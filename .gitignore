@@ -131,3 +131,5 @@ dmypy.json
 week-01/data/fhv_tripdata_2021-01.parquet
 
 week-01/data/fhv_tripdata_2021-02.parquet
+
+week-02/mlruns/
