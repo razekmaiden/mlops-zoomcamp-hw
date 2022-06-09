@@ -3,6 +3,7 @@ from prefect import flow, task, get_run_logger
 from datetime import datetime, timedelta, date
 from dateutil.relativedelta import relativedelta
 import pickle
+import os
 
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.linear_model import LinearRegression
@@ -50,10 +51,6 @@ def train_model(df, categorical):
     mse = mean_squared_error(y_train, y_pred, squared=False)
     #print(f"The MSE of training is: {mse}")
     logger.info(f"The MSE of training is: {mse}")
-
-    #with open("models/preprocessor.b", "wb") as f_out:
-    #        pickle.dump(dv, f_out)
-
     return lr, dv
 
 @task
@@ -89,11 +86,12 @@ def get_paths(date=None):
     logger.info(f"Train Date: {train_path}")
     logger.info(f"Validation Date: {validation_path}")
     
-    return train_path, validation_path
+    return train_path, validation_path, dt.strftime('%Y-%m-%d')
 
 @flow
 def main(date=None):
-    train_path, val_path = get_paths(date).result()
+    logger = get_run_logger()
+    train_path, val_path, to_save_date = get_paths(date).result()
 
     categorical = ['PUlocationID', 'DOlocationID']
 
@@ -105,8 +103,20 @@ def main(date=None):
 
     # train the model
     lr, dv = train_model(df_train_processed, categorical).result()
-    #train_model(df_train_processed, categorical).result()
     run_model(df_val_processed, categorical, dv, lr)
+    model_name = f"models/model-{to_save_date}.bin"
+    dv_name = f"models/dv-{to_save_date}.bin"
+
+    if not os.path.exists("models"):
+        os.makedirs("models")
+    logger.info(f"Saving Model Files: {model_name}, {dv_name}")
+    with open(model_name, "wb") as f_out:
+            pickle.dump(lr, f_out)
+    with open(dv_name, "wb") as f_out:
+            pickle.dump(dv, f_out)
+
+    
+    
 
 # from prefect.deployments import DeploymentSpec
 # from prefect.orion.schemas.schedules import IntervalSchedule
