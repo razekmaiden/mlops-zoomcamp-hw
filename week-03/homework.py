@@ -115,11 +115,19 @@ def main(date=None):
     with open(dv_name, "wb") as f_out:
             pickle.dump(dv, f_out)
 
-    
-    
 
-# from prefect.deployments import DeploymentSpec
-# from prefect.orion.schemas.schedules import IntervalSchedule
-# from prefect.flow_runners import SubprocessFlowRunner
+#main(date="2021-08-15")
 
-main(date="2021-08-15")
+from prefect.deployments import DeploymentSpec
+from prefect.orion.schemas.schedules import CronSchedule
+from prefect.flow_runners import SubprocessFlowRunner
+
+DeploymentSpec(
+    flow=main,
+    name="cron-schedule-deployment",
+    flow_runner=SubprocessFlowRunner(),
+    tags=["ml"],
+    schedule=CronSchedule(
+        cron="0 9 15 * *",
+        timezone="America/Santiago"),
+)
